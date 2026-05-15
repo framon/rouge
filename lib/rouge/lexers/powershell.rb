@@ -8,7 +8,7 @@ module Rouge
       title 'powershell'
       desc 'powershell'
       tag 'powershell'
-      aliases 'posh', 'microsoftshell', 'msshell'
+      aliases 'posh', 'microsoftshell', 'msshell', 'pwsh'
       filenames '*.ps1', '*.psm1', '*.psd1', '*.psrc', '*.pssc'
       mimetypes 'text/x-powershell'
 
@@ -182,6 +182,10 @@ module Rouge
 
       state :parameters do
         rule %r/`./m, Str::Escape
+        rule %r/\)/ do
+          token Punctuation
+          pop!(2) if in_state?(:interpol) # pop :parameters and :interpol
+        end
         rule %r/\s*?\n/, Text::Whitespace, :pop!
         rule %r/[;(){}\]]/, Punctuation, :pop!
         rule %r/[|=]/, Operator, :pop!
@@ -236,6 +240,8 @@ module Rouge
 
         rule %r/[-+*\/%=!.&|]/, Operator
         rule %r/[{}(),:;]/, Punctuation
+
+        rule %r/`$/, Str::Escape # line continuation
       end
     end
   end

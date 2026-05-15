@@ -10,6 +10,7 @@ module Rouge
     class Gruvbox < CSSTheme
       name 'gruvbox'
 
+      # rubocop:disable Naming/ConstantName
       # global Gruvbox colours {{{
       C_dark0_hard = '#1d2021'
       C_dark0 ='#282828'
@@ -122,6 +123,8 @@ module Rouge
         palette orange: C_faded_orange
       end
 
+      # rubocop:enable Naming/ConstantName
+
       dark!
       mode :light
 
@@ -139,6 +142,10 @@ module Rouge
       style Generic::Inserted, :fg => :green, :bg => :bg0
       style Generic::Deleted, :fg => :red, :bg => :bg0
       style Generic::Heading, :fg => :green, :bold => true
+
+      style Generic::Emph, :italic => true
+      style Generic::EmphStrong, :italic => true, :bold => true
+      style Generic::Strong, :bold => true
 
       style Keyword, :fg => :red
       style Keyword::Constant, :fg => :purple
@@ -164,7 +171,6 @@ module Rouge
       style Literal::Number, :fg => :purple
 
       style Literal::String::Symbol, :fg => :blue
-
     end
   end
 end

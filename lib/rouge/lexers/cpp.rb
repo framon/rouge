@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*- #
 # frozen_string_literal: true
 
+require_relative 'c'
+
 module Rouge
   module Lexers
-    load_lexer 'c.rb'
-
     class Cpp < C
       title "C++"
       desc "The C++ programming language"
@@ -22,19 +22,19 @@ module Rouge
 
       def self.keywords
         @keywords ||= super + Set.new(%w(
-          asm auto catch const_cast delete dynamic_cast explicit export friend
-          mutable namespace new operator private protected public
-          reinterpret_cast restrict size_of static_cast this throw throws
-          typeid typename using virtual final override
-
-          alignas alignof constexpr decltype noexcept static_assert
-          thread_local try
+          and and_eq asm bitand bitor catch compl concept consteval
+          constinit const_cast co_await co_return co_yield decltype
+          delete dynamic_cast explicit export final friend import
+          module mutable namespace new noexcept not not_eq operator or
+          or_eq override private protected public reinterpret_cast
+          requires size_of static_cast this throw throws try typeid
+          typename using virtual xor xor_eq
         ))
       end
 
       def self.keywords_type
         @keywords_type ||= super + Set.new(%w(
-          bool
+          char8_t
         ))
       end
 
@@ -59,16 +59,22 @@ module Rouge
       prepend :statements do
         rule %r/(class|struct)\b/, Keyword, :classname
         rule %r/template\b/, Keyword, :template
-        rule %r/\d+(\.\d+)?(?:h|(?:min)|s|(?:ms)|(?:us)|(?:ns))/, Num::Other
-        rule %r((#{dq}[.]#{dq}?|[.]#{dq})(e[+-]?#{dq}[lu]*)?)i, Num::Float
-        rule %r(#{dq}e[+-]?#{dq}[lu]*)i, Num::Float
-        rule %r/0x\h('?\h)*[lu]*/i, Num::Hex
+        rule %r/#{dq}(\.#{dq})?(?:y|d|h|(?:min)|s|(?:ms)|(?:us)|(?:ns)|i|(?:if)|(?:il))\b/, Num::Other
+        rule %r((#{dq}[.]#{dq}?|[.]#{dq})([ep][+-]?#{dq})?[luf]*)i, Num::Float
+        rule %r(#{dq}[ep][+-]?#{dq}[luf]*)i, Num::Float
+        rule %r/0x\h('?\h)*([ep][+-]?#{dq})?[lu]*/i, Num::Hex
+        rule %r/0x\h('?\h)*[.]\h+([ep][+-]?#{dq})[luf]*/i, Num::Hex
         rule %r/0b[01]+('[01]+)*/, Num::Bin
         rule %r/0[0-7]('?[0-7])*[lu]*/i, Num::Oct
         rule %r/#{dq}[lu]*/i, Num::Integer
         rule %r/\bnullptr\b/, Name::Builtin
         rule %r/(?:u8|u|U|L)?R"([a-zA-Z0-9_{}\[\]#<>%:;.?*\+\-\/\^&|~!=,"']{,16})\(.*?\)\1"/m, Str
-        rule %r/::/, Operator
+        rule %r/(::|<=>)/, Operator
+        rule %r/[{]/, Punctuation
+        rule %r/}/ do
+          token Punctuation
+          pop! if in_state?(:function) # pop :function
+        end
       end
 
       state :classname do

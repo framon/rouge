@@ -46,8 +46,6 @@ module Rouge
         )
       end
 
-      # optional comment or whitespace
-      ws = %r((?:\s|//.*?\n|/[*].*?[*]/)+)
       id = /[a-zA-Z_]\w*/
       digit = /\d_+\d|\d/
       bin_digit = /[01]_+[01]|[01]/
@@ -64,7 +62,7 @@ module Rouge
 
         rule %r/"/, Str, :string
         rule %r/'(?:\\.|[^\\]|\\u[0-9a-f]{4})'/, Str::Char
-        
+
         rule %r/#{digit}+\.#{digit}+([eE]#{digit}+)?[fd]?/i, Num::Float
         rule %r/'#{bin_digit}+'B/i, Num::Bin
         rule %r/'#{hex_digit}+'H/i, Num::Hex

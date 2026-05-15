@@ -7,7 +7,7 @@ module Rouge
       title "Tcl"
       desc "The Tool Command Language (tcl.tk)"
       tag 'tcl'
-      filenames '*.tcl'
+      filenames '*.tcl', '*.tm'
       mimetypes 'text/x-tcl', 'text/x-script.tcl', 'application/x-tcl'
 
       def self.detect?(text)
@@ -57,9 +57,9 @@ module Rouge
 
       def self.gen_command_state(name='')
         state(:"command#{name}") do
-          mixin :word
+          rule %r/#/, Comment, :comment
 
-          rule %r/##{NOT_CHARS[END_LINE]}+/, Comment::Single
+          mixin :word
 
           rule %r/(?=#{CHARS[END_WORD]})/ do
             push :"params#{name}"
@@ -161,6 +161,11 @@ module Rouge
         rule %r/\\x[0-9a-f]{2}/i, Str::Escape
         rule %r/\\u[0-9a-f]{4}/i, Str::Escape
         rule %r/\\./m, Str::Escape
+      end
+
+      state :comment do
+        rule %r/.*[^\\]\n/, Comment, :pop!
+        rule %r/.*\\\n/, Comment
       end
 
       state :string do

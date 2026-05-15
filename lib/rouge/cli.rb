@@ -159,7 +159,7 @@ module Rouge
       end
 
       def run
-        @mode.doc.each(&method(:puts))
+        @mode.doc.each { |line| puts line }
       end
     end
 
@@ -174,42 +174,45 @@ module Rouge
         yield %[usage: rougify highlight <filename> [options...]]
         yield %[       rougify highlight [options...]]
         yield %[]
-        yield %[--input-file|-i <filename>  specify a file to read, or - to use stdin]
+        yield %[--input-file|-i <filename>   specify a file to read, or - to use stdin]
         yield %[]
-        yield %[--lexer|-l <lexer>          specify the lexer to use.]
-        yield %[                            If not provided, rougify will try to guess]
-        yield %[                            based on --mimetype, the filename, and the]
-        yield %[                            file contents.]
+        yield %[--lexer|-l <lexer>           specify the lexer to use.]
+        yield %[                             If not provided, rougify will try to guess]
+        yield %[                             based on --mimetype, the filename, and the]
+        yield %[                             file contents.]
         yield %[]
-        yield %[--formatter|-f <opts>       specify the output formatter to use.]
-        yield %[                            If not provided, rougify will default to]
-        yield %[                            terminal256.]
+        yield %[--formatter-preset|-f <opts> specify the output formatter to use.]
+        yield %[                             If not provided, rougify will default to]
+        yield %[                             terminal256. options are: terminal256,]
+        yield %[                             terminal-truecolor, html, html-pygments,]
+        yield %[                             html-inline, html-line-table, html-table,]
+        yield %[                             null/raw/tokens, or tex.]
         yield %[]
-        yield %[--theme|-t <theme>          specify the theme to use for highlighting]
-        yield %[                            the file. (only applies to some formatters)]
+        yield %[--theme|-t <theme>           specify the theme to use for highlighting]
+        yield %[                             the file. (only applies to some formatters)]
         yield %[]
-        yield %[--mimetype|-m <mimetype>    specify a mimetype for lexer guessing]
+        yield %[--mimetype|-m <mimetype>     specify a mimetype for lexer guessing]
         yield %[]
-        yield %[--lexer-opts|-L <opts>      specify lexer options in CGI format]
-        yield %[                            (opt1=val1&opt2=val2)]
+        yield %[--lexer-opts|-L <opts>       specify lexer options in CGI format]
+        yield %[                             (opt1=val1&opt2=val2)]
         yield %[]
-        yield %[--formatter-opts|-F <opts>  specify formatter options in CGI format]
-        yield %[                            (opt1=val1&opt2=val2)]
+        yield %[--formatter-opts|-F <opts>   specify formatter options in CGI format]
+        yield %[                             (opt1=val1&opt2=val2)]
         yield %[]
-        yield %[--require|-r <filename>     require a filename or library before]
-        yield %[                            highlighting]
+        yield %[--require|-r <filename>      require a filename or library before]
+        yield %[                             highlighting]
         yield %[]
-        yield %[--escape                    allow the use of escapes between <! and !>]
+        yield %[--escape                     allow the use of escapes between <! and !>]
         yield %[]
-        yield %[--escape-with <l> <r>       allow the use of escapes between custom]
-        yield %[                            delimiters. implies --escape]
+        yield %[--escape-with <l> <r>        allow the use of escapes between custom]
+        yield %[                             delimiters. implies --escape]
       end
 
       # There is no consistent way to do this, but this is used elsewhere,
       # and we provide explicit opt-in and opt-out with $COLORTERM
       def self.supports_truecolor?
         return true if %w(24bit truecolor).include?(ENV['COLORTERM'])
-        return false if ENV['COLORTERM'] && ENV['COLORTERM'] =~ /256/
+        return false if ENV['COLORTERM'] && ENV['COLORTERM'].include?('256')
 
         if RbConfig::CONFIG['host_os'] =~ /mswin|mingw/
           ENV['ConEmuANSI'] == 'ON' && !ENV['ANSICON']
@@ -341,12 +344,11 @@ module Rouge
 
       def run
         Formatter.enable_escape! if @escape
-        formatter.format(lexer.lex(input), &method(:print))
+        formatter.format(lexer.lex(input)) { |piece| print piece }
       end
 
-    private_class_method
-      def self.parse_cgi(str)
-        pairs = CGI.parse(str).map { |k, v| [k.to_sym, v.first] }
+      private_class_method def self.parse_cgi(str)
+        pairs = URI.decode_www_form(str).map { |k, v| [k.to_sym, v] }
         Hash[pairs]
       end
     end
@@ -437,7 +439,7 @@ module Rouge
       end
 
       def run
-        @theme.render(&method(:puts))
+        @theme.render { |line| puts line }
       end
     end
 
@@ -508,14 +510,11 @@ module Rouge
     end
 
 
-  private_class_method
-    def self.normalize_syntax(argv)
+    private_class_method def self.normalize_syntax(argv)
       out = []
       argv.each do |arg|
         case arg
-        when /^(--\w+)=(.*)$/
-          out << $1 << $2
-        when /^(-\w)(.+)$/
+        when /^(--\w+)=(.*)$/, /^(-\w)(.+)$/
           out << $1 << $2
         else
           out << arg

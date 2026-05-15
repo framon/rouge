@@ -37,6 +37,12 @@ module Rouge
       end
     end
 
+    # exception class for fallthrough - using an exception is slightly faster
+    # than catch { ... }, but it is not semantically an error that should be
+    # rescued from.
+    class Fallthrough < Exception # rubocop:disable Lint/InheritException
+    end
+
     # A rule is a tuple of a regular expression to test, and a callback
     # to perform if the test succeeds.
     #
@@ -44,11 +50,9 @@ module Rouge
     class Rule
       attr_reader :callback
       attr_reader :re
-      attr_reader :beginning_of_line
       def initialize(re, callback)
         @re = re
         @callback = callback
-        @beginning_of_line = re.source[0] == ?^
       end
 
       def inspect
@@ -165,6 +169,19 @@ module Rouge
           proc do |stream|
             puts "    yielding: #{tok.qualname}, #{stream[0].inspect}" if @debug
             @output_stream.call(tok, stream[0])
+          end
+        when Array
+          proc do |stream|
+            puts "    yielding: #{tok.qualname}, #{stream[0].inspect}" if @debug
+            @output_stream.call(tok, stream[0])
+            for i_next_state in next_state do
+              next @stack.pop if i_next_state == :pop!
+              next @stack.push(@stack.last) if i_next_state == :push
+
+              state = @states[i_next_state] || self.class.get_state(i_next_state)
+              puts "    pushing :#{state.name}" if @debug
+              @stack.push(state)
+            end
           end
         else
           raise "invalid next state: #{next_state.inspect}"
@@ -309,7 +326,7 @@ module Rouge
     #
     # @see #step #step (where (2.) is implemented)
     def stream_tokens(str, &b)
-      stream = StringScanner.new(str)
+      stream = StringScanner.new(str, fixed_anchor: true)
 
       @current_stream = stream
       @output_stream  = b
@@ -320,7 +337,7 @@ module Rouge
         if @debug
           puts
           puts "lexer: #{self.class.tag}"
-          puts "stack: #{stack.map(&:name).map(&:to_sym).inspect}"
+          puts "stack: #{stack.map { |s| s.name.to_sym }.inspect}"
           puts "stream: #{stream.peek(20).inspect}"
         end
 
@@ -328,7 +345,7 @@ module Rouge
 
         if !success
           puts "    no match, yielding Error" if @debug
-          b.call(Token::Tokens::Error, stream.getch)
+          yield(Token::Tokens::Error, stream.getch)
         end
       end
     end
@@ -351,17 +368,8 @@ module Rouge
         else
           puts "  trying: #{rule.inspect}" if @debug
 
-          # XXX HACK XXX
-          # StringScanner's implementation of ^ is b0rken.
-          # see http://bugs.ruby-lang.org/issues/7092
-          # TODO: this doesn't cover cases like /(a|^b)/, but it's
-          # the most common, for now...
-          next if rule.beginning_of_line && !stream.beginning_of_line?
-
           if (size = stream.skip(rule.re))
             puts "    got: #{stream[0].inspect}" if @debug
-
-            instance_exec(stream, &rule.callback)
 
             if size.zero?
               @null_steps += 1
@@ -371,6 +379,13 @@ module Rouge
               end
             else
               @null_steps = 0
+            end
+
+            begin
+              instance_exec(stream, &rule.callback)
+            rescue Fallthrough
+              stream.unscan
+              next
             end
 
             return true
@@ -427,8 +442,17 @@ module Rouge
       end
     end
 
+    # Re-lexes the given text (or the most recently matched string if
+    # none is given) with the current lexer.
     def recurse(text=nil)
       delegate(self.class, text)
+    end
+
+    # Breaks out of the current rule block and continues to match later
+    # rules, as if the current regex had not matched. Does not affect
+    # the stack.
+    def fallthrough!
+      raise Fallthrough
     end
 
     # Push a state onto the stack.  If no state name is given and you've

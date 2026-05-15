@@ -8,8 +8,8 @@ module Rouge
       desc "The Python programming language (python.org)"
       tag 'python'
       aliases 'py'
-      filenames '*.py', '*.pyw', '*.sc', 'SConstruct', 'SConscript', '*.tac',
-                '*.bzl', 'BUCK', 'BUILD', 'BUILD.bazel', 'WORKSPACE'
+      filenames '*.py', '*.pyi', '*.pyw', '*.sc', 'SConstruct', 'SConscript',
+                '*.tac', '*.bzl', 'BUCK', 'BUILD', 'BUILD.bazel', 'WORKSPACE'
       mimetypes 'text/x-python', 'application/x-python'
 
       def self.detect?(text)
@@ -17,120 +17,120 @@ module Rouge
       end
 
       def self.keywords
-        @keywords ||= %w(
+        @keywords ||= Set.new %w(
           assert break continue del elif else except exec
           finally for global if lambda pass print raise
-          return try while yield as with from import yield
+          return try while yield as with from import
           async await nonlocal
         )
       end
 
       def self.builtins
-        @builtins ||= %w(
-          __import__ abs all any apply ascii basestring bin bool buffer
-          bytearray bytes callable chr classmethod cmp coerce compile
-          complex delattr dict dir divmod enumerate eval execfile exit
-          file filter float format frozenset getattr globals hasattr hash hex id
-          input int intern isinstance issubclass iter len list locals
-          long map max memoryview min next object oct open ord pow property range
-          raw_input reduce reload repr reversed round set setattr slice
-          sorted staticmethod str sum super tuple type unichr unicode
-          vars xrange zip
+        @builtins ||= Set.new %w(
+          __import__ abs aiter all anext any apply ascii
+          basestring bin bool buffer breakpoint bytearray bytes
+          callable chr classmethod cmp coerce compile complex
+          delattr dict dir divmod enumerate eval exec execfile exit
+          file filter float format frozenset getattr globals
+          hasattr hash help hex
+          id input int intern isinstance issubclass iter len list locals long
+          map max memoryview min next object oct open ord pow print property
+          range raw_input reduce reload repr reversed round set setattr slice
+          sorted staticmethod str sum super tuple type unichr unicode vars
+          xrange zip
         )
       end
 
       def self.builtins_pseudo
-        @builtins_pseudo ||= %w(self None Ellipsis NotImplemented False True)
+        @builtins_pseudo ||= Set.new %w(None Ellipsis NotImplemented False True)
       end
 
       def self.exceptions
-        @exceptions ||= %w(
-          ArithmeticError AssertionError AttributeError
-          BaseException BlockingIOError BrokenPipeError BufferError
-          BytesWarning ChildProcessError ConnectionAbortedError
-          ConnectionError ConnectionRefusedError ConnectionResetError
-          DeprecationWarning EOFError EnvironmentError
-          Exception FileExistsError FileNotFoundError
-          FloatingPointError FutureWarning GeneratorExit IOError
-          ImportError ImportWarning IndentationError IndexError
-          InterruptedError IsADirectoryError KeyError KeyboardInterrupt
-          LookupError MemoryError ModuleNotFoundError NameError
-          NotADirectoryError NotImplemented NotImplementedError OSError
-          OverflowError OverflowWarning PendingDeprecationWarning
-          ProcessLookupError RecursionError ReferenceError ResourceWarning
-          RuntimeError RuntimeWarning StandardError StopAsyncIteration
-          StopIteration SyntaxError SyntaxWarning SystemError SystemExit
-          TabError TimeoutError TypeError UnboundLocalError UnicodeDecodeError
-          UnicodeEncodeError UnicodeError UnicodeTranslateError
-          UnicodeWarning UserWarning ValueError VMSError Warning
-          WindowsError ZeroDivisionError
+        @exceptions ||= Set.new %w(
+          ArithmeticError AssertionError AttributeError BaseException
+          BaseExceptionGroup BlockingIOError BrokenPipeError BufferError
+          BytesWarning ChildProcessError ConnectionAbortedError ConnectionError
+          ConnectionRefusedError ConnectionResetError DeprecationWarning
+          EOFError EnvironmentError EncodingWarning Exception ExceptionGroup
+          FileExistsError FileNotFoundError FloatingPointError FutureWarning
+          GeneratorExit IOError ImportError ImportWarning IndentationError
+          IndexError InterruptedError IsADirectoryError
+          KeyError KeyboardInterrupt LookupError
+          MemoryError ModuleNotFoundError
+          NameError NotADirectoryError NotImplemented NotImplementedError
+          OSError OverflowError OverflowWarning PendingDeprecationWarning
+          PermissionError ProcessLookupError PythonFinalizationError
+          RecursionError ReferenceError ResourceWarning RuntimeError RuntimeWarning
+          StandardError StopAsyncIteration StopIteration SyntaxError SyntaxWarning
+          SystemError SystemExit TabError TimeoutError TypeError
+          UnboundLocalError UnicodeDecodeError UnicodeEncodeError UnicodeError
+          UnicodeTranslateError UnicodeWarning UserWarning ValueError VMSError
+          Warning WindowsError
+          ZeroDivisionError
         )
       end
 
       identifier =        /[[:alpha:]_][[:alnum:]_]*/
       dotted_identifier = /[[:alpha:]_.][[:alnum:]_.]*/
+      inline_ws = /(?:[ \t]|\\\n)*?/
+      inline_content = /(?:[^\\\n]|\\[\n.])*?/
 
       def current_string
-        @string_register ||= StringRegister.new
+        @current_string ||= StringRegister.new
+      end
+
+      operator_words = %r/(in|is|and|or|not)\b/
+      operators = %r{(<<|>>|//|[*][*])=?|!=|[-~+\/*%=<>&^|@]=?|!=}
+
+      start do
+        push :newline
+      end
+
+      state :inline_whitespace do
+        rule %r/[ \t]+/, Text
+        rule %r/\\\n/, Str::Escape
       end
 
       state :root do
-        rule %r/\n+/m, Text
+        rule %r/\n+/m, Text, :newline
         rule %r/^(:)(\s*)([ru]{,2}""".*?""")/mi do
           groups Punctuation, Text, Str::Doc
         end
 
-        rule %r/[^\S\n]+/, Text
-        rule %r(#(.*)?\n?), Comment::Single
-        rule %r/[\[\]{}:(),;.]/, Punctuation
-        rule %r/\\\n/, Text
-        rule %r/\\/, Text
+        rule %r/\.\.\.\B$/, Name::Builtin::Pseudo
 
-        rule %r/(in|is|and|or|not)\b/, Operator::Word
-        rule %r/(<<|>>|\/\/|\*\*)=?/, Operator
-        rule %r/[-~+\/*%=<>&^|@]=?|!=/, Operator
+        mixin :inline_whitespace
 
-        rule %r/(from)((?:\\\s|\s)+)(#{dotted_identifier})((?:\\\s|\s)+)(import)/ do
-          groups Keyword::Namespace,
-                 Text,
-                 Name::Namespace,
-                 Text,
-                 Keyword::Namespace
-        end
+        rule %r(#(.*)?\n?), Comment::Single, :newline
+        rule %r/[\[\]{}:(),;]/, Punctuation
+        rule %r/[.]/, Punctuation, :post_dot
+        rule %r/\\/, Str::Escape
 
-        rule %r/(import)(\s+)(#{dotted_identifier})/ do
-          groups Keyword::Namespace, Text, Name::Namespace
-        end
+        rule %r/@#{dotted_identifier}/i, Name::Decorator
 
-        rule %r/(def)((?:\s|\\\s)+)/ do
-          groups Keyword, Text
-          push :funcname
-        end
+        rule operator_words, Operator::Word
+        rule operators, Operator
 
-        rule %r/(class)((?:\s|\\\s)+)/ do
-          groups Keyword, Text
-          push :classname
-        end
+        rule %r/def\b/, Keyword, :funcname
 
-        # TODO: not in python 3
+        rule %r/class\b/, Keyword, :classname
+
         rule %r/`.*?`/, Str::Backtick
-        rule %r/([rfbu]{0,2})('''|"""|['"])/i do |m|
-          groups Str::Affix, Str
+        rule %r/([rtfbu]{0,2})('''|"""|['"])/i do |m|
+          groups Str::Affix, Str::Heredoc
           current_string.register type: m[1].downcase, delim: m[2]
           push :generic_string
         end
 
-        rule %r/@#{dotted_identifier}/i, Name::Decorator
-
         # using negative lookbehind so we don't match property names
         rule %r/(?<!\.)#{identifier}/ do |m|
-          if self.class.keywords.include? m[0]
+          if self.class.keywords.include?(m[0])
             token Keyword
-          elsif self.class.exceptions.include? m[0]
+          elsif self.class.exceptions.include?(m[0])
+            token Name::Exception
+          elsif self.class.builtins.include?(m[0])
             token Name::Builtin
-          elsif self.class.builtins.include? m[0]
-            token Name::Builtin
-          elsif self.class.builtins_pseudo.include? m[0]
+          elsif self.class.builtins_pseudo.include?(m[0])
             token Name::Builtin::Pseudo
           else
             token Name
@@ -153,12 +153,80 @@ module Rouge
         rule %r/([1-9](_?[0-9])*|0(_?0)*)/, Num::Integer
       end
 
+      state :import do
+        mixin :inline_whitespace
+        rule dotted_identifier, Name::Namespace, :pop!
+        rule(//) { pop! }
+      end
+
+      state :from do
+        mixin :inline_whitespace
+
+        rule dotted_identifier do
+          token Name::Namespace
+          goto :from_import
+        end
+
+        rule(//) { pop! }
+      end
+
+      # import after from, meaning we don't push the :import state
+      state :from_import do
+        mixin :inline_whitespace
+        rule %r/import\b/, Keyword::Namespace, :pop!
+        rule(//) { pop! }
+      end
+
+      state :post_dot do
+        mixin :inline_whitespace
+        rule %r/([A-Z]\w*)(?=#{inline_ws}[(])/m, Name::Class
+        rule %r/(#{identifier})(?=#{inline_ws}[(])/m, Name::Function
+        rule(//) { pop! }
+      end
+
+      state :newline do
+        mixin :inline_whitespace
+
+        rule %r/from\b/, Keyword::Namespace, :from
+        rule %r/import\b/, Keyword::Namespace, :import
+
+        # [jneen] This lookahead is a best-effort hack, since soft keywords are
+        # technically not possible to detect in the lexing stage. If we see an
+        # operator like `and`, `or`, inline `if`, etc which would expect an
+        # expression beforehand, we know that it is almost certainly not a keyword.
+        inline_ops = /#{operator_words}|if\b|#{operators}/
+        rule %r/(?:case|match)(?=#{inline_ws}#{inline_ops})/, Name::Other, :pop!
+
+        rule %r/(?:case|match)(?=#{inline_content}:#{inline_ws}[#\n])/ do |m|
+          token Keyword
+          if m[0] == 'case'
+            goto :case_pattern
+          else
+            pop!
+          end
+        end
+
+        rule(//) { pop! }
+      end
+
       state :funcname do
+        mixin :inline_whitespace
         rule identifier, Name::Function, :pop!
       end
 
       state :classname do
+        mixin :inline_whitespace
         rule identifier, Name::Class, :pop!
+      end
+
+      state :case_pattern do
+        rule %r/\n/ do
+          token Text
+          goto :newline
+        end
+
+        rule %r/_\b/, Keyword
+        mixin :root
       end
 
       state :raise do
@@ -175,11 +243,12 @@ module Rouge
       end
 
       state :generic_string do
-        rule %r/[^'"\\{]+/, Str
+        rule %r/\n/, Str, :generic_string_newline
+        rule %r/[^'"\\{\n]+/, Str
         rule %r/{{/, Str
 
         rule %r/'''|"""|['"]/ do |m|
-          token Str
+          token Str::Heredoc
           if current_string.delim? m[0]
             current_string.remove
             pop!
@@ -196,6 +265,15 @@ module Rouge
             token Str
           end
         end
+      end
+
+      state :generic_string_newline do
+        rule %r/[ \t]+/, Str
+        rule %r/(>>>|\.\.\.)\B/ do
+          token Generic::Prompt
+          goto :doctest
+        end
+        rule(//) { pop! }
       end
 
       state :generic_escape do
@@ -217,10 +295,23 @@ module Rouge
         rule %r/\\./, Str, :pop!
       end
 
+      state :doctest do
+        rule %r/\n\n/, Text, :pop!
+
+        rule %r/'''|"""/ do
+          token Str::Heredoc
+          pop!(2) if in_state?(:generic_string) # pop :doctest and :generic_string
+        end
+
+        mixin :root
+      end
+
       state :generic_interpol do
-        rule %r/[^{}]+/ do |m|
+        rule %r/[^{}!:]+/ do |m|
           recurse m[0]
         end
+        rule %r/![asr]/, Str::Interpol
+        rule %r/:/, Str::Interpol
         rule %r/{/, Str::Interpol, :generic_interpol
         rule %r/}/, Str::Interpol, :pop!
       end

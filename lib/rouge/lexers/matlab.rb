@@ -13,15 +13,14 @@ module Rouge
 
       def self.keywords
         @keywords = Set.new %w(
-          break case catch classdef continue else elseif end for function
-          global if otherwise parfor persistent return spmd switch try while
+          arguments break case catch classdef continue else elseif end for
+          function global if import methods otherwise parfor persistent
+          properties return spmd switch try while
         )
       end
 
-      # self-modifying method that loads the builtins file
-      def self.builtins
-        Kernel::load File.join(Lexers::BASE_DIR, 'matlab/keywords.rb')
-        builtins
+      lazy do
+        require_relative 'matlab/keywords'
       end
 
       state :root do
@@ -38,11 +37,13 @@ module Rouge
         end
 
 
+        # TODO [jneen]: there are elements of BUILTINS with
+        # a . in them - this won't match any of those.
         rule %r/[a-zA-Z][_a-zA-Z0-9]*/m do |m|
           match = m[0]
           if self.class.keywords.include? match
             token Keyword
-          elsif self.class.builtins.include? match
+          elsif BUILTINS.include? match
             token Name::Builtin
           else
             token Name

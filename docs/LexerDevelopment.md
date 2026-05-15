@@ -1,6 +1,7 @@
-<!-- 
-# @title Lexer Development 
---> 
+<!--
+# @title Lexer Development
+-->
+
 # Lexer Development
 
 ## Overview
@@ -15,18 +16,25 @@ support.
 
 The remainder of this document explains how to develop a lexer for Rouge.
 
-<p class="note">
-  Please don't submit lexers that are largely copy-pasted from other files. 
-  These submissions will be rejected.
-</p>
+> Please don't submit lexers that are largely copy-pasted from other files.
+> These submissions will be rejected. For similar reasons, please do not
+> submit lexers generated in whole or in part by LLMs.
 
 ## Getting Started
+
+[contributing-guidelines]: https://github.com/rouge-ruby/rouge/blob/main/Contributing.md "Contributing Guidelines"
+
+### First, read the [contributing guidelines][contributing-guidelines] thoroughly.
+
+This will help ensure that your lexer can be merged without too much trouble.
 
 ### Development Environment
 
 To develop a lexer, you need to have set up a development environment. If you
-haven't done that yet, we've got {file:docs/DevEnvironment.md a guide} that can
+haven't done that yet, we've got a [guide][dev-environment-docs] that can
 help.
+
+[dev-environment-docs]: https://rouge-ruby.github.io/docs/file.DevEnvironment.html "Rouge's environment setup guide"
 
 The rest of this guide assumes that you have set up such an environment and,
 importantly, that you have installed the gems on which Rouge depends to a
@@ -42,7 +50,7 @@ saved as `lib/rouge/lexers/example.rb`.
 
 ### Subclassing `RegexLexer`
 
-Your lexer needs to be a subclass of the {Rouge::Lexer} abstract class.  Most
+Your lexer needs to be a subclass of the {Rouge::Lexer} abstract class. Most
 lexers are in fact subclassed from {Rouge::RegexLexer} as the simplest way to
 define the states of a lexer is to use rules consisting of regular expressions.
 The remainder of this guide assumes your lexer is subclassed from
@@ -52,8 +60,7 @@ The remainder of this guide assumes your lexer is subclassed from
 
 Basically, a lexer consists of two parts:
 
-1. a series of properties that are usually declared at the top of the lexer;
-   and
+1. a series of properties that are usually declared at the top of the lexer; and
 2. a collection of one or more states, each of which has one or more rules.
 
 There are some additional features that a lexer can implement and we'll cover
@@ -63,8 +70,7 @@ For the remainder of this guide, we'll use [the JSON lexer][json-lexer] as an
 example. The lexer is relatively simple and is for a language with which many
 people will at least have some level of familiarity.
 
-[json-lexer]:
-https://github.com/rouge-ruby/rouge/blob/master/lib/rouge/lexers/json.rb
+[json-lexer]: https://github.com/rouge-ruby/rouge/blob/main/lib/rouge/lexers/json.rb
 
 ### Lexer Properties
 
@@ -82,7 +88,7 @@ The title of the lexer. It is declared using the {Rouge::Lexer.title} method.
 
 Note: As a subclass of {Rouge::RegexLexer}, the JSON lexer inherits this method
 (and its inherited methods) into its namespace and can call those methods
-without needing to prefix each with `Rouge::Lexer`.  This is the case with all
+without needing to prefix each with `Rouge::Lexer`. This is the case with all
 of the property defining methods.
 
 #### Description
@@ -113,13 +119,12 @@ of a code block, such as in the following example:
 
 The `ruby` tag is defined in [the Ruby lexer][ruby-lexer].
 
-[ruby-lexer]:
-https://github.com/rouge-ruby/rouge/blob/master/lib/rouge/lexers/ruby.rb
+[ruby-lexer]: https://github.com/rouge-ruby/rouge/blob/main/lib/rouge/lexers/ruby.rb
 
 #### Aliases
 
 The aliases associated with a lexer. These are declared using the
-{Rouge::Lexer.aliases}  method. Aliases are alternative ways that the lexer can
+{Rouge::Lexer.aliases} method. Aliases are alternative ways that the lexer can
 be identified.
 
 The JSON lexer does not define any aliases but [the Ruby one][ruby-lexer] does.
@@ -138,7 +143,7 @@ filenames "*.json"
 ```
 
 The filename(s) associated with a lexer. These are declared using the
-{Rouge::Lexer.filenames}  method.
+{Rouge::Lexer.filenames} method.
 
 Filenames are declared as "globs" that will match a particular pattern. A
 "glob" may be merely the specific name of a file (eg. `Rakefile`) or it could
@@ -178,7 +183,7 @@ these elements in your lexer.
 #### States
 
 ```rb
-state :root do 
+state :root do
   ... # do some stuff
 end
 ```
@@ -192,7 +197,7 @@ specifying the rules that Rouge will try to match as it parses the text.
 A rule is defined using the {Rouge::RegexLexer::StateDSL#rule} method. The
 `rule` method can define either "simple" rules or "complex" rules.
 
-*Simple Rules*
+##### Simple Rules
 
 ```rb
 rule /\s+/m, Text::Whitespace
@@ -217,8 +222,8 @@ defined within it:
 
 ```rb
 state :string do
-  rule /[^\\"]+/, Str::Double 
-  rule /\\./, Str::Escape 
+  rule /[^\\"]+/, Str::Double
+  rule /\\./, Str::Escape
   rule /"/, Str::Double, :pop!
 end
 ```
@@ -230,7 +235,7 @@ quotation mark `"` we enter into the state of being "in a string" and when we
 next encounter the double quotation mark, we leave the string and return to the
 previous state (in this case, the `:root` state).
 
-*Complex Rules*
+##### Complex Rules
 
 It is possible to define more complex rules for a lexer by calling `rule` with:
 
@@ -245,20 +250,34 @@ Inside a complex rule's block, it's possible to call {Rouge::RegexLexer#push},
 {Rouge::RegexLexer#pop!}, {Rouge::RegexLexer#token} and
 {Rouge::RegexLexer#delegate}.
 
-You can see an example of these more complex rules in [the Ruby
-lexer][ruby-lexer].
+One common use case of the block syntax is to use {Rouge::RegexLexer#groups}
+to easily assign token types to various capture groups of the regex. For
+example, in Java, we might detect attribute accessors with:
+
+```rb
+rule /([.])(\w+)/ do
+  groups Operator, Name::Attribute
+end
+```
+
+Make sure you don't forget to include *all* of the matched text in the output!
+
+They may also use {Rouge::RegexLexer#fallthrough!} to fall through to later
+rules, as if the regular expression had not matched.
+
+You can see an example of these more complex rules in [the Ruby lexer][ruby-lexer].
 
 ### Additional Features
 
 While the properties and states are the minimum elements of a lexer that need
 to be implemented, a lexer can include additional features.
 
-#### Source Detection 
+#### Source Detection
 
 ```rb
 def self.detect?(text)
   return true if text.shebang? 'ruby'
-end 
+end
 ```
 
 Rouge will attempt to guess the appropriate lexer if it is not otherwise clear.
@@ -282,14 +301,14 @@ to make these checks easy to perform.
 For more general disambiguation between different lexers, see [Conflicting
 Filename Globs][conflict-globs] below.
 
-[conflict-globs]: #Conflicting_Filename_Globs
+[conflict-globs]: #conflicting-filename-globs
 
 #### Special Words
 
-Every programming language reserves certain words for use as identifiers that
+Most programming languages reserve certain words for use as identifiers that
 have a special meaning in the language. To make regular expressions that search
-for these words easier, many lexers will put the applicable keywords in an
-array and make them available in a particular way (be it as a local variable,
+for these words easier, many lexers will put the applicable keywords in a
+set and make them available in a particular way (be it as a local variable,
 an instance variable or what have you).
 
 For performance and safety, we strongly recommend lexers use a class method:
@@ -298,13 +317,14 @@ For performance and safety, we strongly recommend lexers use a class method:
 module Rouge
   module Lexers
     class YetAnotherLanguage < RegexLexer
-    ...
+      ...
 
-    def self.keywords
-      @keywords ||= Set.new %w(key words used in this language)
+      def self.keywords
+        @keywords ||= Set.new %w(key words used in this language)
+      end
+
+      ...
     end
-
-    ...
   end
 end
 ```
@@ -361,8 +381,8 @@ If a lexer is for a language that is very similar to a language with an
 existing lexer, it's possible to subclass the existing lexer. See [the C++
 lexer][cpp-lexer] and [the JSX lexer][jsx-lexer] for examples.
 
-[cpp-lexer]: https://github.com/rouge-ruby/rouge/blob/master/lib/rouge/lexers/cpp.rb
-[jsx-lexer]: https://github.com/rouge-ruby/rouge/blob/master/lib/rouge/lexers/jsx.rb
+[cpp-lexer]: https://github.com/rouge-ruby/rouge/blob/main/lib/rouge/lexers/cpp.rb
+[jsx-lexer]: https://github.com/rouge-ruby/rouge/blob/main/lib/rouge/lexers/jsx.rb
 
 ### Gotchas
 
@@ -387,7 +407,7 @@ end
 Then, in [your spec][specs], include a `:source` parameter when calling
 `assert_guess`:
 
-[specs]: #Specs
+[specs]: #specs
 
 ```rb
 it "guesses by filename" do
@@ -395,6 +415,7 @@ it "guesses by filename" do
   assert_guess :filename => "foo.pl", :source => "my $foo = 1"
 end
 ```
+
 ## How to Test
 
 When developing a lexer, it is important to have ways to test it. Rouge provides
@@ -406,7 +427,7 @@ support for three types of test files:
 
 When you submit a lexer, you must also include these test files.
 
-Before we look at how to run these tests, let's look at the files themselves. 
+Before we look at how to run these tests, let's look at the files themselves.
 
 ### Specs
 
@@ -419,9 +440,9 @@ information about Minitest, refer to [the documentation][minitest-docs].
 Your spec should at a minimum test how your lexer interacts with Rouge's
 guessing algorithm. In particular, you should check:
 
-* the associated filenames;
-* the associated mimetypes; and
-* the associated sources (if any).
+- the associated filenames;
+- the associated mimetypes; and
+- the associated sources (if any).
 
 Your spec must be saved to `spec/lexers/<name_of_your_lexer>_spec.rb`.
 
@@ -475,12 +496,12 @@ that there is no file extension.
 
 ### Visual Samples
 
-A visual sample is a file that includes a representive sample of the syntax of
+A visual sample is a file that includes a representative sample of the syntax of
 your language. The sample should be long enough to reasonably demonstrate the
 correct lexing of the language but does not need to offer complete coverage.
 While it can be tempting to copy and paste code found online, please refrain
 from doing this. If you need to copy code, indicate in a comment (using the
-appropriate syntax for your lexer's language) the source of the code.  Avoid
+appropriate syntax for your lexer's language) the source of the code. Avoid
 including code that is duplicative of the other code in the sample.
 
 If you are adding or fixing rules in the lexer, please add some examples of the
@@ -497,9 +518,9 @@ The spec and the demo can be run using the `rake` command. You can run this by
 typing `bundle exec rake` at the command line. If everything works, you should
 see a series of dots. If you have an error, this will appear here, too.
 
-To see your visual sample, launch Rouge's visual test app by running `bundle
-exec rackup`. You can choose your sample from the complete list by going to
-<http://localhost:9292>.
+To see your visual sample, launch Rouge's visual test app by running
+`bundle exec puma`. You can choose your sample from the complete list by going
+to <http://localhost:9292>.
 
 ## How to Submit
 
@@ -524,4 +545,3 @@ We're looking forward to seeing your code!
 
 You can learn a lot by reading through some of the existing lexers. A good
 example that's not too long is [the JSON lexer][json-lexer].
-

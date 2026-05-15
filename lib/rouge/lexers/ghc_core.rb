@@ -17,7 +17,7 @@ module Rouge
         rule %r/^=====.*=====$/, Generic::Heading
         # timestamps
         rule %r/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d+ UTC$/, Comment::Single
-        rule %r/^Result size of .+\s*.*}/, Comment::Multiline
+        rule %r/^Result size of .+\n.+{[^}]*}/, Comment::Multiline
         rule %r/--.*$/, Comment::Single
 
         rule %r/\[/, Comment::Special, :annotation
@@ -88,7 +88,7 @@ module Rouge
         rule %r/[A-Z][^\s.,(){}]*/, Keyword::Type
 
         # packages, e.g. 'ghc-prim-0.5.3:'
-        rule %r/(^[a-z].*?\d+\.\d+\.\d+)(:)(?=\S)/ do |m|
+        rule %r/([a-z].*?\d+\.\d+\.\d+)(:)(?=\S)/ do |m|
           token Name::Namespace, m[1]
           token Punctuation, m[2]
         end

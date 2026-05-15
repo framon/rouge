@@ -1,9 +1,10 @@
 <!--
 # @title Using Docker
 -->
+
 # Using Docker
 
-So you want to help with Rouge development but aren't too keen on needing to
+Do you want to help with Rouge development but aren't too keen on needing to
 install Ruby and whatever dependencies are required by Rouge?
 [Docker](https://www.docker.com/) to the rescue!
 
@@ -31,8 +32,8 @@ documentation][dk-inst-docs]. For a guide on installing Git, take a look at
 Clone the project first, and navigate into your clone:
 
 ```bash
-$ git clone https://github.com/rouge-ruby/rouge.git
-$ cd rouge
+git clone https://github.com/rouge-ruby/rouge.git
+cd rouge
 ```
 
 ### Configuring the Container
@@ -41,7 +42,7 @@ The following line of code sets up Docker with Ruby and Rouge's development
 dependencies:
 
 ```bash
-$ docker run -t -v $PWD:/app -v /tmp/vendor:/vendor -w /app -e BUNDLE_PATH=/vendor ruby bundle
+docker run -t -v $PWD:/app -v /tmp/vendor:/vendor -w /app -e BUNDLE_PATH=/vendor ruby bundle
 ```
 
 Pretty sweet. Let's unpack this:
@@ -74,15 +75,15 @@ Pretty sweet. Let's unpack this:
 Just replace the `bundle` command with `rake`:
 
 ```bash
-$ docker run -t -v $PWD:/app -v /tmp/vendor:/vendor -w /app -e BUNDLE_PATH=/vendor ruby rake
+docker run -t -v $PWD:/app -v /tmp/vendor:/vendor -w /app -e BUNDLE_PATH=/vendor ruby rake
 ```
 
 ### Running Rack
 
-Similarly, we can run Rack by replacing `bundle` with `rackup`:
+Similarly, we can run Rack by replacing `bundle` with `puma`:
 
 ```bash
-$ docker run -t -v $PWD:/app -v /tmp/vendor:/vendor -w /app -e BUNDLE_PATH=/vendor -p 9292:9292 ruby bundle exec rackup --host 0.0.0.0
+docker run -t -v $PWD:/app -v /tmp/vendor:/vendor -w /app -e BUNDLE_PATH=/vendor -p 9292:9292 ruby bundle exec puma --bind http://0.0.0.0
 ```
 
 The additional command line flags are:
@@ -90,7 +91,7 @@ The additional command line flags are:
 - `-p 9292:9292`: Exposes port 9292 of the container to the same port on the
   host.
 
-- `bundle exec rackup --host 0.0.0.0`: Runs Rack and asks it to listen on all
+- `bundle exec puma --bind http://0.0.0.0`: Runs Rack and asks it to listen on all
   addresses. Without this it will only listen on the `localhost` of the
   container and we won't be able to access the server from the host machine.
 
@@ -99,4 +100,6 @@ You should be able to visit <http://localhost:9292> at this point.
 ## Conclusion
 
 Now that you've got Docker set up, perhaps you'd like to work on
-{file:docs/LexerDevelopment.md a lexer}?
+a lexer by following our [guide][lexer-docs].
+
+[lexer-docs]: LexerDevelopment.md

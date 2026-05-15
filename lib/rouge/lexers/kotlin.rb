@@ -26,7 +26,7 @@ module Rouge
 
       use_site_targets = %w(file property field get set receiver param setparam delegate)
 
-      name_chars = %r'[-_\p{Lu}\p{Ll}\p{Lt}\p{Lm}\p{Nl}\p{Nd}\p{Pc}\p{Cf}\p{Mn}\p{Mc}]*'
+      name_chars = %r'[-\p{Lu}\p{Ll}\p{Lt}\p{Lm}\p{Nl}\p{Nd}\p{Pc}\p{Cf}\p{Mn}\p{Mc}]*'
 
       class_name = %r'`?[\p{Lu}]#{name_chars}`?'
       name = %r'`?[_\p{Lu}\p{Ll}\p{Lt}\p{Lm}\p{Nl}]#{name_chars}`?'
@@ -121,12 +121,14 @@ module Rouge
         rule class_name, Name::Class
         rule %r'(<)', Punctuation, :generic_parameters
         rule %r'(reified|out|in)', Keyword
-        rule %r'([,:])', Punctuation
+        rule %r'([,:.?])', Punctuation
         rule %r'(\s+)', Text
         rule %r'(>)', Punctuation, :pop!
       end
 
       state :property do
+        rule %r'(<)', Punctuation, :generic_parameters
+        rule %r'(\s+)', Text
         rule name, Name::Property, :pop!
       end
 

@@ -1,6 +1,7 @@
 <!--
 # @title Development Environment
 -->
+
 # Development Environment
 
 ## Introduction
@@ -11,7 +12,9 @@ you need to set up a development environment.
 
 Please note that this guide is about how to configure a development environment
 on your local machine. If you want to isolate your Rouge development environment
-using Docker, take a gander at {file:docs/Docker.md our guide}.
+using Docker, take a gander at our [guide][docker-docs].
+
+[docker-docs]: Docker.md
 
 ### Ruby and Git
 
@@ -26,9 +29,9 @@ for Git, [GitHub's documentation][gh-inst-docs].
 ### Terminal Emulators
 
 This guide assumes you are familiar with the _command line_. The command line is
-accessed through a _terminal emulator_. 
+accessed through a _terminal emulator_.
 
-- In **macOS**, the default emulator is called "Terminal" and can be found by 
+- In **macOS**, the default emulator is called "Terminal" and can be found by
   searching for "Terminal" in Spotlight.
 
 - In **Windows**, you can open a command line by running "Command Prompt". You
@@ -67,7 +70,7 @@ fork. Select your account and—boom!—you've just forked Rouge.
 The next thing to do is to get your fork onto your computer. Git makes this
 easy. In the directory you want to hold your repository, type:
 
-```shell
+```bash
 git clone git@github.com:<your_github_account_name>/rouge.git
 ```
 
@@ -84,16 +87,15 @@ of time developing Rouge, this is something you'll want to do.
 Fortunately, it's easy to add additional remote repositories. To add the
 official Rouge repository (with the name `upstream`), type the following:
 
-```shell
+```bash
 git remote add upstream https://github.com/rouge-ruby/rouge.git
 ```
 
 Now you'll be able to fetch changes from the official repository and merge them
-back into your code. For more information, check out [the
-documentation][gh-fork-docs] on GitHub.
+back into your code. For more information, check out [the documentation][gh-fork-docs]
+on GitHub.
 
-[gh-fork-docs]:
-https://help.github.com/en/articles/configuring-a-remote-for-a-fork
+[gh-fork-docs]: https://help.github.com/en/articles/configuring-a-remote-for-a-fork
 
 ## Installing Development Dependencies
 
@@ -108,13 +110,13 @@ The easiest way to install Rouge's development dependencies is using
 [Bundler][]. Bundler is itself a gem but we'll install it differently to how we
 install the other dependencies.
 
-[Bundler]: https://bundler.io/
+[bundler]: https://bundler.io/
 
 If you already develop with Ruby, you no doubt have Bundler installed. You can
 check if you do by typing `bundle -v` at the command line. If you don't see the
 version number then you need to install Bundler. To do this, type:
 
-```shell
+```bash
 gem install bundler
 ```
 
@@ -126,7 +128,7 @@ that's complete, you're ready to rock.
 Rouge comes with a list of gems it depends upon called a _Gemfile_. Make sure
 you're at the top level of your clone of your repository and type:
 
-```shell
+```bash
 bundle config set path 'vendor'
 bundle install
 ```
@@ -147,11 +149,11 @@ type `bundle exec rake` rather than just `rake`.
 
 It's best to develop in a _branch_. You can create a branch by typing:
 
-```shell
+```bash
 git checkout -b <name_of_your_branch>
 ```
 
-You don't need to do it this way but Rouge maintainers often use the format 
+You don't need to do it this way but Rouge maintainers often use the format
 `feature.<name>` for features and `bugfix.<name>` for bug fixes.
 
 Using branches will make it easier for others to collaborate with you and make
@@ -166,22 +168,22 @@ You're now ready to roll. Here are the things you can do from the top level of
 your cloned repository:
 
 1. **Run the Visual Test App**: Rouge includes a little web app you can run to
-   display highlighted code. You can run this by typing `bundle exec rackup`. By
+   display highlighted code. You can run this by typing `bundle exec puma`. By
    default, this will start a web server on port 9292. You can access it by
-   going to <http://localhost:9292> with Rack running. If everything is working,
+   going to <http://localhost:9292> with Puma running. If everything is working,
    you'll see little snippets of code for each lexer in the repository. You can
    look at the full visual sample for a lexer by clicking on the name of the
    lexer.
 
 2. **Run the Tests**: Rouge comes with a test suite you can run to check for
-   errors in your code.  You can run this using Rake. Just type `bundle exec
-   rake` and you'll (hopefully) be greeted by a series of dots that indicate a
+   errors in your code. You can run this using Rake. Just type `bundle exec rake`
+   and you'll (hopefully) be greeted by a series of dots that indicate a
    successful test.
 
 3. **Check Code Quality**: Rouge uses the popular library [RuboCop][] for
-   checking code quality. You can run RuboCop by—you guessed it—typing `bundle
-   exec rubocop`.
+   checking code quality. You can run RuboCop by—you guessed it—typing
+   `bundle exec rubocop`.
 
-   [RuboCop]: https://github.com/rubocop-hq/rubocop
+   [rubocop]: https://github.com/rubocop/rubocop
 
 You're all set up! Have fun hacking on Rouge!
